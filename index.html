@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v0.1 -->
+<!-- v0.5 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -59,6 +59,55 @@
     align-items: center;
     gap: 44px;
   }
+  .identity { flex: 1; }
+  .header-contact {
+    flex: 0 0 auto;
+    text-align: right;
+    align-self: center;
+  }
+  .hc-row { margin-bottom: 12px; }
+  .hc-row:last-child { margin-bottom: 0; }
+  .header-contact .c-label {
+    display: block;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-soft);
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .header-contact a {
+    color: var(--accent-deep);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  .header-contact a:hover { text-decoration: underline; }
+
+  /* Screen: show icons, hide labeled text */
+  .hc-labeled { display: none; }
+  .hc-icons {
+    display: flex;
+    gap: 16px;
+    justify-content: flex-end;
+    align-items: center;
+  }
+  .hc-icons a {
+    color: var(--accent-deep);
+    display: inline-flex;
+    width: 38px;
+    height: 38px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    transition: background 0.15s, color 0.15s;
+  }
+  .hc-icons a:hover {
+    background: var(--accent-deep);
+    color: #fff;
+    text-decoration: none;
+  }
 
   .portrait {
     flex: 0 0 auto;
@@ -102,7 +151,16 @@
     font-weight: 400;
   }
   .contact-row { margin-bottom: 10px; }
-  .contact-row:last-child { margin-bottom: 0; }
+
+  .section-footer {
+    display: flex;
+    gap: 56px;
+    flex-wrap: wrap;
+    margin-top: 40px;
+    padding-top: 26px;
+    border-top: 1px solid var(--line);
+  }
+  .section-footer .contact-row { margin-bottom: 0; }
   .c-label {
     display: block;
     font-size: 0.72rem;
@@ -301,6 +359,8 @@
     .exp-role { break-inside: avoid; break-after: avoid; }
     .section-head, .exp-company, .col-head { break-after: avoid; }
     footer { display: none; }
+    .hc-icons { display: none; }
+    .hc-labeled { display: block; }
   }
 
   /* Experience */
@@ -391,6 +451,7 @@
 
   @media (max-width: 620px) {
     .header-inner { flex-direction: column; text-align: center; gap: 28px; }
+    .header-contact { text-align: center; }
     .identity h1 { font-size: 2.6rem; }
     .section-head { flex-wrap: wrap; }
   }
@@ -406,6 +467,26 @@
       <div class="identity">
         <h1>Renato Häberli</h1>
         <div class="title">Search &amp; E-Commerce Consultant</div>
+      </div>
+      <div class="header-contact">
+        <div class="hc-labeled">
+          <div class="hc-row">
+            <span class="c-label">Email</span>
+            <a href="mailto:renato@haeberli-consulting.ch">renato@haeberli-consulting.ch</a>
+          </div>
+          <div class="hc-row">
+            <span class="c-label">LinkedIn</span>
+            <a href="https://www.linkedin.com/in/renato-h%C3%A4berli-94095958/" target="_blank" rel="noopener">linkedin.com/in/renato-häberli</a>
+          </div>
+        </div>
+        <div class="hc-icons">
+          <a href="mailto:renato@haeberli-consulting.ch" aria-label="Email" title="renato@haeberli-consulting.ch">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+          </a>
+          <a href="https://www.linkedin.com/in/renato-h%C3%A4berli-94095958/" target="_blank" rel="noopener" aria-label="LinkedIn" title="LinkedIn">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.55V9h3.57v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z"/></svg>
+          </a>
+        </div>
       </div>
     </div>
   </header>
@@ -486,25 +567,25 @@
     </div><!-- /block languages -->
 
     <div class="block">
-    <h3 class="col-head">Contact</h3>
-    <div class="contact-list">
-      <div class="contact-row">
-        <span class="c-label">Email</span>
-        <a href="mailto:renato@haeberli-consulting.ch">renato@haeberli-consulting.ch</a>
+    <h3 class="col-head">Open Source</h3>
+    <div class="os">
+      <div class="os-item">
+        <div class="os-desc">Contributing to Solr and Lucene, and developing my own Solr extensions</div>
+        <a class="os-link" href="https://github.com/renatoh" target="_blank" rel="noopener">github.com/renatoh</a>
       </div>
-      <div class="contact-row">
-        <span class="c-label">LinkedIn</span>
-        <a href="https://www.linkedin.com/in/renato-h%C3%A4berli-94095958/" target="_blank" rel="noopener">linkedin.com/in/renato-häberli</a>
+      <div class="os-item">
+        <div class="os-desc">Improving the OpenSearch integration for Velox, an open-source e-commerce platform</div>
+        <a class="os-link" href="https://gitlab.com/renatohaeberli" target="_blank" rel="noopener">gitlab.com/renatohaeberli</a>
       </div>
     </div>
-    </div><!-- /block contact -->
+    </div><!-- /block open source -->
 
     </div><!-- /col left -->
 
     <div class="col">
 
     <div class="block">
-    <h3 class="col-head">Education</h3>
+    <h3 class="col-head">Education &amp; Certifications</h3>
     <div class="edu">
 
       <div class="edu-item">
@@ -532,20 +613,6 @@
 
     </div>
     </div><!-- /block education -->
-
-    <div class="block">
-    <h3 class="col-head">Open Source</h3>
-    <div class="os">
-      <div class="os-item">
-        <div class="os-desc">Contributing to Solr and Lucene, and developing my own Solr extensions</div>
-        <a class="os-link" href="https://github.com/renatoh" target="_blank" rel="noopener">github.com/renatoh</a>
-      </div>
-      <div class="os-item">
-        <div class="os-desc">Improving the OpenSearch integration for Velox, an open-source e-commerce platform</div>
-        <a class="os-link" href="https://gitlab.com/renatohaeberli" target="_blank" rel="noopener">gitlab.com/renatohaeberli</a>
-      </div>
-    </div>
-    </div><!-- /block open source -->
 
     </div><!-- /col right -->
 
