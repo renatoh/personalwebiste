@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v0.14 -->
+<!-- v0.20 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -322,6 +322,10 @@
   /* Open source */
   .os-item { margin-bottom: 16px; }
   .os-item:last-child { margin-bottom: 0; }
+  .os-block .os-item {
+    padding-left: 18px;
+    border-left: 2px solid var(--line);
+  }
   .os-desc { font-size: 0.95rem; color: var(--ink); line-height: 1.45; }
   .os-link {
     font-size: 0.83rem;
@@ -333,36 +337,72 @@
   }
   .os-link:hover { text-decoration: underline; }
 
+  /* Blog block uses .os structure but titles read as primary, date is small */
+  .os-item .os-link[href^="blog/"] {
+    font-size: 0.95rem;
+    color: var(--ink);
+    line-height: 1.4;
+    font-weight: 600;
+    display: block;
+  }
+  .os-item .os-link[href^="blog/"]:hover { color: var(--accent-deep); text-decoration: none; }
+  .os-meta {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    margin-top: 3px;
+    letter-spacing: 0.04em;
+  }
+  .os-all {
+    display: inline-block;
+    margin-top: 14px;
+    font-size: 0.83rem;
+    font-weight: 600;
+    color: var(--accent-deep);
+    text-decoration: none;
+  }
+  .os-all:hover { text-decoration: underline; }
+  .print-only { display: none; }
+  .screen-only { display: inline; }
+
   @media (max-width: 620px) {
     .two-col { grid-template-columns: 1fr; gap: 44px; }
   }
   @media print {
-    @page { size: A4; margin: 12mm 14mm; }
+    @page { size: A4; margin: 11mm 14mm; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     body { background: #fff; font-size: 14px; }
-    header { padding: 0 0 16px; }
+    header { padding: 0 0 12px; }
     header::before { display: none; }
-    .portrait { width: 108px; height: 108px; margin: 4px; box-shadow: 0 0 0 1px var(--line); }
+    .portrait { width: 100px; height: 100px; margin: 4px; box-shadow: 0 0 0 1px var(--line); }
     .header-inner { gap: 28px; }
-    .identity h1 { font-size: 2.3rem; }
+    .identity h1 { font-size: 2.2rem; }
     .identity .title { font-size: 1rem; }
-    .bio { padding-top: 18px; }
-    .bio p { font-size: 0.98rem; line-height: 1.5; }
-    .section { padding-top: 14px; padding-bottom: 14px; }
-    .section-head { margin-bottom: 16px; }
+    .bio { padding-top: 14px; padding-bottom: 6px; }
+    .bio p { font-size: 0.95rem; line-height: 1.45; }
+    .bio p + p { margin-top: 8px; }
+    .section { padding-top: 10px; padding-bottom: 10px; }
+    .section-head { margin-bottom: 12px; }
     .section-head h2 { font-size: 1.5rem; }
-    .two-col { row-gap: 22px; }
-    .col-head { margin-bottom: 14px; }
-    .skill { margin-bottom: 8px; }
-    .edu-item { margin-bottom: 16px; }
+    .two-col { row-gap: 18px; column-gap: 36px; }
+    .col > .block + .block { margin-top: 22px; }
+    .col-head { margin-bottom: 10px; }
+    .skill { margin-bottom: 6px; }
+    .edu-item { margin-bottom: 12px; }
+    .os-item { margin-bottom: 12px; }
+    .os-all { margin-top: 8px; }
     .bar-fill { transform: scaleX(1) !important; animation: none !important; }
-    .edu-item, .skill { break-inside: avoid; page-break-inside: avoid; }
+    .edu-item, .skill, .os-item { break-inside: avoid; page-break-inside: avoid; }
     .exp-body li { break-inside: avoid; page-break-inside: avoid; }
     .exp-role { break-inside: avoid; break-after: avoid; }
     .section-head, .exp-company, .col-head { break-after: avoid; }
+    .col > .block { break-inside: avoid; page-break-inside: avoid; }
+    /* In print show only the 2 newest blog posts to fit on page 1 */
+    .blog-block .os-item:nth-of-type(3) { display: none; }
     footer { display: none; }
     .hc-icons { display: none; }
     .hc-labeled { display: block; }
+    .print-only { display: inline; }
+    .screen-only { display: none; }
   }
 
   /* Experience */
@@ -480,6 +520,10 @@
             <span class="c-label">LinkedIn</span>
             <a href="https://www.linkedin.com/in/rhaeberli/" target="_blank" rel="noopener">linkedin.com/in/rhaeberli</a>
           </div>
+          <div class="hc-row">
+            <span class="c-label">Blog</span>
+            <a href="https://renatohaeberli.ch/blog">renatohaeberli.ch/blog</a>
+          </div>
         </div>
         <div class="hc-icons">
           <a href="blog/" aria-label="Blog" title="Blog">
@@ -572,19 +616,24 @@
     </div>
     </div><!-- /block languages -->
 
-    <div class="block">
-    <h3 class="col-head">Open Source</h3>
+    <div class="block blog-block">
+    <h3 class="col-head">Blog</h3>
     <div class="os">
       <div class="os-item">
-        <div class="os-desc">Contributing to Solr and Lucene, and developing my own Solr extensions</div>
-        <a class="os-link" href="https://github.com/renatoh" target="_blank" rel="noopener">github.com/renatoh</a>
+        <a class="os-link" href="blog/tuning-sap-commerce-cloud-solr-search/">Tuning SAP Commerce Cloud's Solr Search</a>
+        <div class="os-meta">June 2026</div>
       </div>
       <div class="os-item">
-        <div class="os-desc">Improving the OpenSearch integration for Velox, an open-source e-commerce platform</div>
-        <a class="os-link" href="https://gitlab.com/renatohaeberli" target="_blank" rel="noopener">gitlab.com/renatohaeberli</a>
+        <a class="os-link" href="blog/all-in-one-product-search/">All-in-One Product Search</a>
+        <div class="os-meta">March 2026</div>
       </div>
+      <div class="os-item">
+        <a class="os-link" href="blog/improving-e-commerce-search-cross-encoder/">Improving E-Commerce Search With a Cross-Encoder</a>
+        <div class="os-meta">November 2025</div>
+      </div>
+      <a class="os-all" href="blog/"><span class="screen-only">All posts →</span><span class="print-only">All posts: renatohaeberli.ch/blog</span></a>
     </div>
-    </div><!-- /block open source -->
+    </div><!-- /block blog -->
 
     </div><!-- /col left -->
 
@@ -619,6 +668,20 @@
 
     </div>
     </div><!-- /block education -->
+
+    <div class="block os-block">
+    <h3 class="col-head">Open Source</h3>
+    <div class="os">
+      <div class="os-item">
+        <div class="os-desc">Contributing to Solr and Lucene, and developing my own Solr extensions</div>
+        <a class="os-link" href="https://github.com/renatoh" target="_blank" rel="noopener">github.com/renatoh</a>
+      </div>
+      <div class="os-item">
+        <div class="os-desc">Improving the OpenSearch integration for Velox, an open-source e-commerce platform</div>
+        <a class="os-link" href="https://gitlab.com/renatohaeberli" target="_blank" rel="noopener">gitlab.com/renatohaeberli</a>
+      </div>
+    </div>
+    </div><!-- /block open source -->
 
     </div><!-- /col right -->
 
