@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<!-- blog-article v0.1 -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>All-in-One Product Search — Renato Häberli</title>
+<meta name="description" content="A side-project product search combining hybrid (lexical + vector) retrieval, cross-encoder re-ranking, and an agentic LLM shopping assistant — on Solr and OpenSearch.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231a2238'/%3E%3Ctext x='32' y='33' font-family='Georgia,serif' font-size='30' font-weight='700' fill='%238a6d3b' text-anchor='middle' dominant-baseline='central'%3ERH%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a2238;
+    --ink-soft: #4a5168;
+    --paper: #f4f1ea;
+    --paper-card: #fbfaf6;
+    --accent: #8a6d3b;
+    --accent-deep: #6b5429;
+    --line: #d8d2c4;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Source Sans 3', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 28px; }
+
+  header {
+    background: var(--paper-card);
+    border-bottom: 1px solid var(--line);
+    padding: 30px 0;
+    position: relative;
+  }
+  header::before {
+    content: "";
+    position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, var(--accent-deep), var(--accent), var(--accent-deep));
+  }
+  .nav { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; }
+  .brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.7rem;
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .nav .back {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent-deep);
+    text-decoration: none;
+    letter-spacing: 0.02em;
+  }
+  .nav .back:hover { text-decoration: underline; }
+
+  article { padding: 56px 0 40px; }
+  .article-date {
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-deep);
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+  article h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2.7rem;
+    font-weight: 600;
+    line-height: 1.1;
+    margin-bottom: 28px;
+  }
+  article h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.7rem;
+    font-weight: 600;
+    margin: 38px 0 14px;
+  }
+  article h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--accent-deep);
+    letter-spacing: 0.02em;
+    margin: 28px 0 12px;
+  }
+  article p {
+    font-size: 1.08rem;
+    color: var(--ink);
+    margin-bottom: 20px;
+  }
+  article p.lead { font-size: 1.18rem; color: var(--ink-soft); }
+  article ul {
+    margin: 0 0 20px;
+    padding-left: 0;
+    list-style: none;
+  }
+  article li {
+    position: relative;
+    padding-left: 20px;
+    margin-bottom: 9px;
+    font-size: 1.05rem;
+  }
+  article li::before {
+    content: "—";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+
+  figure {
+    margin: 28px 0;
+  }
+  figure img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(26,34,56,0.08);
+  }
+  figure figcaption {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    margin-top: 10px;
+  }
+
+  .article-foot {
+    margin-top: 44px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+  }
+  .article-foot a {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--accent-deep);
+    text-decoration: none;
+  }
+  .article-foot a:hover { text-decoration: underline; }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 26px 0;
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+
+  <header>
+    <div class="wrap nav">
+      <a class="brand" href="../../">Renato Häberli</a>
+      <a class="back" href="../">← Blog</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <article>
+      <div class="article-date">31 March 2026</div>
+      <h1>All-in-One Product Search</h1>
+
+      <p class="lead">As a little side project, I built a product search bringing several different techniques together:</p>
+
+      <ul>
+        <li>It can do hybrid search using semantic vector search.</li>
+        <li>It uses a cross-encoder for re-ranking, to bring the most relevant results to the very top of the result page.</li>
+        <li>On top of that, it has a shopping assistant using an agentic loop leveraging an LLM.</li>
+        <li>I can switch the different features on and off on the fly to see their impact on the search results.</li>
+        <li>Both Solr and OpenSearch are supported.</li>
+      </ul>
+
+      <h3>Key Learnings</h3>
+      <ul>
+        <li>Balancing the two weights (lexical score and vector similarity) is tricky and comes with trade-offs.</li>
+        <li>Self-hosted medium-size LLMs — I tried Qwen2.5-14B-Instruct and Hermes-3-Llama-3.1-8B — are not ideal for an agentic search.</li>
+        <li>Reasoning models like OpenAI's o4-mini work very well within an agentic loop.</li>
+        <li>A well-working e-commerce shop assistant with an agentic loop can be built very quickly, but the devil is, as usual, in the details (guardrails, performance, handling of edge cases, etc.).</li>
+      </ul>
+
+      <h2>Demo Use Cases</h2>
+
+      <p>Searching for the tools required to change the tires of your car:</p>
+      <figure>
+        <img src="images/picture1.jpg" alt="Product search for “car jack” on Solr, showing a grid of car jack products with lexical scores.">
+        <figcaption>Lexical search for “car jack”, with per-result scores.</figcaption>
+      </figure>
+
+      <p>…or just let the shop assistant do the research for you:</p>
+      <figure>
+        <img src="images/picture2.jpg" alt="The shop assistant listing the core items needed to lift a car and change wheels: floor jack, jack stands, lug wrench, wheel chocks and a jack pad.">
+        <figcaption>The shop assistant assembling the essentials to change a car's wheels.</figcaption>
+      </figure>
+
+      <p>Need a gift and already have an idea what it could be:</p>
+      <figure>
+        <img src="images/picture3.jpg" alt="The shop assistant recommending a Nintendo Switch console plus three age-appropriate games for a 10-year-old.">
+        <figcaption>A console plus three age-appropriate games, on request.</figcaption>
+      </figure>
+
+      <p>…or you just let the agent do the research for you:</p>
+      <figure>
+        <img src="images/picture4.jpg" alt="The shop assistant suggesting gift ideas for a 10-year-old girl, then refining to karaoke microphones after a follow-up message.">
+        <figcaption>The agent refining its gift suggestions across a short conversation.</figcaption>
+      </figure>
+
+      <div class="article-foot">
+        <a href="../">← Back to all articles</a>
+      </div>
+    </article>
+  </main>
+
+  <footer class="wrap">
+    © <span id="yr"></span> Renato Häberli
+  </footer>
+
+  <script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+</body>
+</html>

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<!-- blog-article v0.1 -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Improving E-Commerce Search With a Cross-Encoder — Renato Häberli</title>
+<meta name="description" content="Using a cross-encoder to re-rank the top search results — an easy, high-impact first step beyond lexical search, tested on 1.4M Amazon products.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231a2238'/%3E%3Ctext x='32' y='33' font-family='Georgia,serif' font-size='30' font-weight='700' fill='%238a6d3b' text-anchor='middle' dominant-baseline='central'%3ERH%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a2238;
+    --ink-soft: #4a5168;
+    --paper: #f4f1ea;
+    --paper-card: #fbfaf6;
+    --accent: #8a6d3b;
+    --accent-deep: #6b5429;
+    --line: #d8d2c4;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Source Sans 3', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 28px; }
+
+  header {
+    background: var(--paper-card);
+    border-bottom: 1px solid var(--line);
+    padding: 30px 0;
+    position: relative;
+  }
+  header::before {
+    content: "";
+    position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, var(--accent-deep), var(--accent), var(--accent-deep));
+  }
+  .nav { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; }
+  .brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.7rem;
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .nav .back {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent-deep);
+    text-decoration: none;
+    letter-spacing: 0.02em;
+  }
+  .nav .back:hover { text-decoration: underline; }
+
+  article { padding: 56px 0 40px; }
+  .article-date {
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-deep);
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+  article h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2.7rem;
+    font-weight: 600;
+    line-height: 1.1;
+    margin-bottom: 28px;
+  }
+  article h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.7rem;
+    font-weight: 600;
+    margin: 38px 0 14px;
+  }
+  article h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--accent-deep);
+    letter-spacing: 0.02em;
+    margin: 28px 0 12px;
+  }
+  article p {
+    font-size: 1.08rem;
+    color: var(--ink);
+    margin-bottom: 20px;
+  }
+
+  figure {
+    margin: 28px 0;
+  }
+  figure img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(26,34,56,0.08);
+  }
+  figure figcaption {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    margin-top: 10px;
+  }
+
+  .article-foot {
+    margin-top: 44px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+  }
+  .article-foot a {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--accent-deep);
+    text-decoration: none;
+  }
+  .article-foot a:hover { text-decoration: underline; }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 26px 0;
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+
+  <header>
+    <div class="wrap nav">
+      <a class="brand" href="../../">Renato Häberli</a>
+      <a class="back" href="../">← Blog</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <article>
+      <div class="article-date">24 November 2025</div>
+      <h1>Improving E-Commerce Search With a Cross-Encoder</h1>
+
+      <h2>Cross-Encoder vs Hybrid Search</h2>
+      <p>For a hybrid search, we create vector embeddings for each document, usually by using a bi-encoder. The vectors are then stored on our search index. For retrieval, a vector embedding of the search query is created and we search for the nearest neighbors within the vector space. These neighbors, representing indexed documents, are then combined with the hits from the lexical search results — hence it is called hybrid search.</p>
+      <p>A cross-encoder, on the other hand, tells us how well a document matches the query relative to other documents. This makes it suitable for re-ranking, but not for the retrieval stage. We pass in the search query together with a number of candidates, e.g. the top 100 documents from our search result. The cross-encoder is then able to rank the candidates relative to each other and returns a ranked result.</p>
+      <p>At first glance, this seems to be a step down from searching within a vector space, since we are not able to retrieve any similar documents — we are only able to re-rank what has already been retrieved. If your search returns the wrong products, you have to tackle that problem first, potentially by implementing hybrid search using a bi-encoder. But if the best-matching products are somewhere in your top 100, the cross-encoder — which gets to “see” the query and the content of your products at the same time — is more capable of picking up interactions between tokens using a so-called attention mechanism. As an example, a book teaching you all the road rules to pass a driver's test might be close in the vector space to a biography of a famous race driver. A cross-encoder will most likely pick up on the difference.</p>
+
+      <h2>Results</h2>
+      <p>Experimenting with cross-encoders, even a small model like ms-marco-MiniLM-L6-v2 (22M parameters, 90MB in size) already delivers very impressive results.</p>
+      <p>With a public dataset of 1.4M Amazon products, re-ranking with a cross-encoder shows impressive improvements just by re-ranking the top 50 products.</p>
+
+      <h3>Examples</h3>
+      <p>Using some random multi-term searches shows how much better the results are after re-ranking. A search for “bbq accessories”, without any re-ranking, has 5 toy BBQs within the top 10 — not exactly what we are looking for:</p>
+      <figure>
+        <img src="images/picture1.jpg" alt="Search results for “bbq accessories” without re-ranking, showing several toy BBQ sets in the top results.">
+        <figcaption>“bbq accessories” — without re-ranking</figcaption>
+      </figure>
+
+      <p>Using the cross-encoder for re-ranking, the top results look much better; the first toy only shows up at position 12:</p>
+      <figure>
+        <img src="images/picture2.jpg" alt="Search results for “bbq accessories” with cross-encoder re-ranking, showing real BBQ accessory sets in the top results.">
+        <figcaption>“bbq accessories” — with cross-encoder re-ranking</figcaption>
+      </figure>
+
+      <p>Searching for “game console” has 3 game console accessories in the top 5:</p>
+      <figure>
+        <img src="images/picture3.jpg" alt="Search results for “game console” without re-ranking, with several accessory products in the top results.">
+        <figcaption>“game console” — without re-ranking</figcaption>
+      </figure>
+
+      <p>With re-ranking, the search result looks much cleaner:</p>
+      <figure>
+        <img src="images/picture4.jpg" alt="Search results for “game console” with cross-encoder re-ranking, showing actual game consoles in the top results.">
+        <figcaption>“game console” — with cross-encoder re-ranking</figcaption>
+      </figure>
+
+      <p>Using a longer phrase like “toy for 5 years old boy” already works pretty well without re-ranking — maybe the pink mic looks a bit off:</p>
+      <figure>
+        <img src="images/picture5.jpg" alt="Search results for “toy for 5 years old boy” without re-ranking.">
+        <figcaption>“toy for 5 years old boy” — without re-ranking</figcaption>
+      </figure>
+
+      <p>With re-ranking, the result looks quite different — not necessarily much better, but it did manage to push the pink mic out of the top 12:</p>
+      <figure>
+        <img src="images/picture6.jpg" alt="Search results for “toy for 5 years old boy” with cross-encoder re-ranking.">
+        <figcaption>“toy for 5 years old boy” — with cross-encoder re-ranking</figcaption>
+      </figure>
+
+      <h2>Conclusion</h2>
+      <p>After testing around 30 random search queries and comparing the results with and without re-ranking, I am impressed by the uplift. In most of them — about 2 out of 3 — the improvement was noticeable at first glance, and I was not able to find a single case in which the results degraded after re-ranking.</p>
+      <p>If you are at the point where your lexical search is not cutting it anymore and you are wondering what the first step beyond lexical search should be, using a cross-encoder for re-ranking looks like a very good place to start. It is easier to implement than hybrid search, since you can leave your lexical search implementation as it is and just add an additional step at the very end, where you rearrange the top-N documents of your search result.</p>
+
+      <div class="article-foot">
+        <a href="../">← Back to all articles</a>
+      </div>
+    </article>
+  </main>
+
+  <footer class="wrap">
+    © <span id="yr"></span> Renato Häberli
+  </footer>
+
+  <script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+</body>
+</html>

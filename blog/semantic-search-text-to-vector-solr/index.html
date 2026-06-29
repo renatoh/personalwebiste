@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<!-- blog-article v0.1 -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enhancing Semantic Search (Text to Vector) in Solr — Renato Häberli</title>
+<meta name="description" content="Connecting a custom embedding model to Solr's semantic vector search, plus multi-field vectors and lazy vectorization.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231a2238'/%3E%3Ctext x='32' y='33' font-family='Georgia,serif' font-size='30' font-weight='700' fill='%238a6d3b' text-anchor='middle' dominant-baseline='central'%3ERH%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a2238;
+    --ink-soft: #4a5168;
+    --paper: #f4f1ea;
+    --paper-card: #fbfaf6;
+    --accent: #8a6d3b;
+    --accent-deep: #6b5429;
+    --line: #d8d2c4;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Source Sans 3', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 28px; }
+
+  header {
+    background: var(--paper-card);
+    border-bottom: 1px solid var(--line);
+    padding: 30px 0;
+    position: relative;
+  }
+  header::before {
+    content: "";
+    position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, var(--accent-deep), var(--accent), var(--accent-deep));
+  }
+  .nav { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; }
+  .brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.7rem;
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .nav .back {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent-deep);
+    text-decoration: none;
+    letter-spacing: 0.02em;
+  }
+  .nav .back:hover { text-decoration: underline; }
+
+  article { padding: 56px 0 40px; }
+  .article-date {
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-deep);
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+  article h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2.7rem;
+    font-weight: 600;
+    line-height: 1.1;
+    margin-bottom: 28px;
+  }
+  article h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.6rem;
+    font-weight: 600;
+    margin: 34px 0 12px;
+  }
+  article p {
+    font-size: 1.08rem;
+    color: var(--ink);
+    margin-bottom: 20px;
+  }
+  article p.lead { font-size: 1.18rem; color: var(--ink-soft); }
+  article ul {
+    margin: 0 0 20px;
+    padding-left: 0;
+    list-style: none;
+  }
+  article li {
+    position: relative;
+    padding-left: 20px;
+    margin-bottom: 8px;
+    font-size: 1.05rem;
+  }
+  article li::before {
+    content: "—";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+
+  .repo-callout {
+    margin: 36px 0 8px;
+    padding: 22px 24px;
+    background: var(--paper-card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .repo-callout .label {
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-deep);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .repo-callout a {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+    word-break: break-word;
+  }
+  .repo-callout a:hover { color: var(--accent-deep); text-decoration: underline; }
+  .repo-callout .desc { font-size: 0.92rem; color: var(--ink-soft); margin-top: 4px; }
+
+  .article-foot {
+    margin-top: 44px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+  }
+  .article-foot a {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--accent-deep);
+    text-decoration: none;
+  }
+  .article-foot a:hover { text-decoration: underline; }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 26px 0;
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+
+  <header>
+    <div class="wrap nav">
+      <a class="brand" href="../../">Renato Häberli</a>
+      <a class="back" href="../">← Blog</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <article>
+      <div class="article-date">1 August 2025</div>
+      <h1>Enhancing Semantic Search (Text to Vector) in Solr</h1>
+
+      <p class="lead">With Solr 9.9.0, you get end-to-end semantic vector search built directly into Solr. By using a service like Hugging Face or Cohere, you can configure your model within Solr and get semantic search up and running quickly.</p>
+
+      <p>Vectorization, for both indexing and search, happens entirely within Solr, so there's no need to manually handle vectors anymore.</p>
+
+      <p>Despite this being a big step forward, you are still limited to third-party language models hosted in the cloud from a few supported providers. This might be suitable to get up and running quickly, but it has a number of drawbacks:</p>
+
+      <ul>
+        <li>Limited to models from supported providers</li>
+        <li>Privacy — your data is sent to the cloud provider</li>
+        <li>Latency</li>
+      </ul>
+
+      <p>I've expanded on what Solr provides out of the box, allowing you to easily connect your custom model running on any endpoint. On top of that, I've added two new features that make vector search even more powerful.</p>
+
+      <h2>1. Support for multiple fields</h2>
+      <p>You can combine multiple text fields into a single vector representation — for example, product name, product description, and marketing text can all be combined into one vector. Simply configure the additional fields you want to include in your vector.</p>
+
+      <h2>2. Lazy vectorization</h2>
+      <p>When updating a document in Solr, the new vector for that document is only recreated if the content of a field used for the vector has changed. This is achieved by fetching the existing document within the update process and checking whether any field used in the vector embedding has actually changed. The vector is only regenerated when one of the relevant fields has changed, which minimizes the expensive creation of vectors.</p>
+
+      <p>More details, including a step-by-step guide on how to configure this in Solr, can be found on GitHub. Feel free to check it out.</p>
+
+      <div class="repo-callout">
+        <div class="label">Code on GitHub</div>
+        <a href="https://github.com/renatoh/solrCustomEmbeddingModel" target="_blank" rel="noopener">github.com/renatoh/solrCustomEmbeddingModel</a>
+        <div class="desc">Custom embedding model for Solr, with multi-field vectors and lazy vectorization.</div>
+      </div>
+
+      <div class="article-foot">
+        <a href="../">← Back to all articles</a>
+      </div>
+    </article>
+  </main>
+
+  <footer class="wrap">
+    © <span id="yr"></span> Renato Häberli
+  </footer>
+
+  <script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<!-- blog v0.1 -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog — Renato Häberli</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231a2238'/%3E%3Ctext x='32' y='33' font-family='Georgia,serif' font-size='30' font-weight='700' fill='%238a6d3b' text-anchor='middle' dominant-baseline='central'%3ERH%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a2238;
+    --ink-soft: #4a5168;
+    --paper: #f4f1ea;
+    --paper-card: #fbfaf6;
+    --accent: #8a6d3b;
+    --accent-deep: #6b5429;
+    --line: #d8d2c4;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Source Sans 3', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 800px; margin: 0 auto; padding: 0 28px; }
+
+  header {
+    background: var(--paper-card);
+    border-bottom: 1px solid var(--line);
+    padding: 30px 0;
+    position: relative;
+  }
+  header::before {
+    content: "";
+    position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, var(--accent-deep), var(--accent), var(--accent-deep));
+  }
+  .nav { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; }
+  .brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.7rem;
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .nav .home {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent-deep);
+    text-decoration: none;
+    letter-spacing: 0.02em;
+  }
+  .nav .home:hover { text-decoration: underline; }
+
+  .page-head { padding: 52px 0 8px; }
+  .page-head h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2.8rem;
+    font-weight: 600;
+  }
+  .page-head p { color: var(--ink-soft); font-size: 1.05rem; margin-top: 6px; max-width: 620px; }
+
+  .posts { padding: 30px 0 80px; }
+  .post {
+    padding: 28px 0;
+    border-top: 1px solid var(--line);
+  }
+  .post:last-child { border-bottom: 1px solid var(--line); }
+  .post .date {
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-deep);
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .post h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.85rem;
+    font-weight: 600;
+    line-height: 1.15;
+    margin-bottom: 10px;
+  }
+  .post h2 a { color: var(--ink); text-decoration: none; }
+  .post h2 a:hover { color: var(--accent-deep); }
+  .post .excerpt { color: var(--ink-soft); font-size: 1rem; max-width: 640px; }
+  .post .more {
+    display: inline-block;
+    margin-top: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent-deep);
+    text-decoration: none;
+  }
+  .post .more:hover { text-decoration: underline; }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 26px 0;
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+
+  <header>
+    <div class="wrap nav">
+      <a class="brand" href="../">Renato Häberli</a>
+      <a class="home" href="../">← Profile</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="page-head">
+      <h1>Blog</h1>
+      <p>Notes on search, e-commerce, and the engineering behind them.</p>
+    </div>
+
+    <div class="posts">
+
+      <article class="post">
+        <div class="date">31 March 2026</div>
+        <h2><a href="all-in-one-product-search/">All-in-One Product Search</a></h2>
+        <p class="excerpt">A side project that brings several search techniques together: hybrid (lexical + vector) retrieval, cross-encoder re-ranking, and an agentic LLM shopping assistant — all toggleable on the fly, on both Solr and OpenSearch. Plus a few honest learnings about weighting, self-hosted models, and where the real effort goes.</p>
+        <a class="more" href="all-in-one-product-search/">Read article →</a>
+      </article>
+
+      <article class="post">
+        <div class="date">24 November 2025</div>
+        <h2><a href="improving-e-commerce-search-cross-encoder/">Improving E-Commerce Search With a Cross-Encoder</a></h2>
+        <p class="excerpt">A cross-encoder re-ranks the top results of an existing search by looking at the query and each product together. Tested on 1.4M Amazon products, re-ranking the top 50 gave a noticeable uplift in about two out of three queries — and never made things worse. An easy, high-impact first step beyond lexical search.</p>
+        <a class="more" href="improving-e-commerce-search-cross-encoder/">Read article →</a>
+      </article>
+
+      <article class="post">
+        <div class="date">1 August 2025</div>
+        <h2><a href="semantic-search-text-to-vector-solr/">Enhancing Semantic Search (Text to Vector) in Solr</a></h2>
+        <p class="excerpt">Solr 9.9.0 brings end-to-end semantic vector search built right in — but you're limited to a few cloud-hosted model providers. Here's how to connect your own custom embedding model on any endpoint, plus two extras: combining multiple fields into one vector, and lazy vectorization that only re-embeds when relevant fields change.</p>
+        <a class="more" href="semantic-search-text-to-vector-solr/">Read article →</a>
+      </article>
+
+      <article class="post">
+        <div class="date">15 August 2023</div>
+        <h2><a href="dynamic-faceting-with-solr/">Dynamic Faceting with Solr</a></h2>
+        <p class="excerpt">Precise product search and the ability to refine results with facets are integral to any online shop — but calculating every facet for every search is inefficient, and maintaining them by hand on the category tree is tedious. Here's how to make faceting dynamic and tailored to each individual search with Solr.</p>
+        <a class="more" href="dynamic-faceting-with-solr/">Read article →</a>
+      </article>
+
+    </div>
+  </main>
+
+  <footer class="wrap">
+    © <span id="yr"></span> Renato Häberli
+  </footer>
+
+  <script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+</body>
+</html>
