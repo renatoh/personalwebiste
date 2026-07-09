@@ -190,6 +190,15 @@
         <li>Don't use <code>CommerceClassificationPropertyValueProvider</code> — it will severely cripple your index performance. Implement your own <code>ValueResolver</code> instead, and make sure the classifications are only fetched once per product, e.g. by caching them on the <code>IndexerBatchContext.attributes</code> mentioned above.</li>
       </ol>
 
+      <h2>Tip 4: Synonyms</h2>
+      <p>One of the reasons synonym handling gets complex is the support for multi-term synonyms. As soon as you add support for multi-term synonyms — like “wifi” to “wi fi”, or “real estate” to “property” — you have to deal with a graph structure and not a flat stream of tokens anymore. Dealing with a graph in your query, and potentially also during indexing, is not trivial and comes with a lot of catches.</p>
+      <p>But let's put these technical complexities aside for now and focus on a couple of best practices around how to maintain synonyms in SAP Commerce Cloud (SCC).</p>
+      <p>Synonyms in SCC are very simple: you add a new <code>SolrSynonymConfig</code>, link it to a language, put e.g. “couch” into the from-field and “sofa” into the to-field, click <em>Export to Solr</em>, and you have added a new synonym.</p>
+      <p>But what about the other direction? We have added <code>couch → sofa</code>. Will a search for “sofa” now also find a couch? No, it will not — what we've configured is a uni-directional synonym.</p>
+      <p>The good news: you don't have to maintain synonyms in both directions manually. You can leave the to-field empty and put a comma-separated list into the from-field, like <code>couch, sofa</code>. SCC will then expand this to <code>couch → sofa</code> and <code>sofa → couch</code> during the synonyms export to Solr.</p>
+      <p>This works with larger groups too, and also with multi-term synonyms. Just extend the list: <code>couch, sofa, chaise lounge</code>. With that, you have configured a group of three bi-directional synonyms, one of which is a multi-term.</p>
+      <p>The one thing to keep in mind is that the from-field should not be longer than 5–6 terms, since the number of combinations grows fast — especially if you do the synonym expansion at query time.</p>
+
       <div class="article-foot">
         <a href="../">← Back to all articles</a>
       </div>
