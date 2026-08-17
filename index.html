@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v0.23 -->
+<!-- v0.24 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -395,6 +395,8 @@
     .exp-body li { break-inside: avoid; page-break-inside: avoid; }
     .exp-role { break-inside: avoid; break-after: avoid; }
     .section-head, .exp-company, .col-head { break-after: avoid; }
+    /* Guarantee Recent Experience starts on a fresh page — prevents an orphan heading */
+    .experience { break-before: page; page-break-before: always; }
     .col > .block { break-inside: avoid; page-break-inside: avoid; }
     /* In print show only the 2 newest blog posts to fit on page 1 */
     .blog-block .os-item:nth-of-type(3) { display: none; }
@@ -688,7 +690,7 @@
     </div><!-- /two-col -->
   </main>
 
-  <section class="wrap section">
+  <section class="wrap section experience">
     <div class="section-head">
       <h2>Recent Experience</h2>
       <span class="rule"></span>
