@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<!-- blog-article v0.1 -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Private Agentic Search Across Your Knowledge Base — Renato Häberli</title>
+<meta name="description" content="A fully local, self-contained agentic search over a large knowledge base — hybrid retrieval, vector embeddings, and a locally running LLM, with no data ever leaving your infrastructure.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231a2238'/%3E%3Ctext x='32' y='33' font-family='Georgia,serif' font-size='30' font-weight='700' fill='%238a6d3b' text-anchor='middle' dominant-baseline='central'%3ERH%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a2238;
+    --ink-soft: #4a5168;
+    --paper: #f4f1ea;
+    --paper-card: #fbfaf6;
+    --accent: #8a6d3b;
+    --accent-deep: #6b5429;
+    --line: #d8d2c4;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Source Sans 3', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 28px; }
+
+  header {
+    background: var(--paper-card);
+    border-bottom: 1px solid var(--line);
+    padding: 30px 0;
+    position: relative;
+  }
+  header::before {
+    content: "";
+    position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, var(--accent-deep), var(--accent), var(--accent-deep));
+  }
+  .nav { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; }
+  .brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.7rem;
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .nav .back {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent-deep);
+    text-decoration: none;
+    letter-spacing: 0.02em;
+  }
+  .nav .back:hover { text-decoration: underline; }
+
+  article { padding: 56px 0 40px; }
+  .article-date {
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-deep);
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+  article h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2.7rem;
+    font-weight: 600;
+    line-height: 1.1;
+    margin-bottom: 28px;
+  }
+  article h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.7rem;
+    font-weight: 600;
+    margin: 40px 0 14px;
+  }
+  article h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--accent-deep);
+    letter-spacing: 0.02em;
+    margin: 28px 0 12px;
+  }
+  article p {
+    font-size: 1.08rem;
+    color: var(--ink);
+    margin-bottom: 20px;
+  }
+  article p.lead { font-size: 1.18rem; color: var(--ink-soft); }
+
+  code {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.9em;
+    background: rgba(138,109,59,0.12);
+    color: var(--accent-deep);
+    padding: 1px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  figure { margin: 28px 0; }
+  figure.hero { margin: 0 0 24px; }
+  figure img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(26,34,56,0.08);
+  }
+  figure.hero img {
+    border-radius: 10px;
+    box-shadow: 0 8px 28px rgba(26,34,56,0.10);
+  }
+  figure figcaption {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    margin-top: 10px;
+  }
+
+  .article-foot {
+    margin-top: 44px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+  }
+  .article-foot a {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--accent-deep);
+    text-decoration: none;
+  }
+  .article-foot a:hover { text-decoration: underline; }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 26px 0;
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+
+  <header>
+    <div class="wrap nav">
+      <a class="brand" href="../../">Renato Häberli</a>
+      <a class="back" href="../">← Blog</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <article>
+      <figure class="hero">
+        <img src="images/title.jpg" alt="Illustration titled “Agentic Search Across All Your Knowledge” with icons for Wikipedia, Jira, Docs, SharePoint and Markdown flowing into an OpenSearch vector index connected to a local agent powered by Qwen. Notes below: 100% Private (no external connections) and Runs Locally (on your hardware).">
+      </figure>
+
+      <div class="article-date">13 August 2026</div>
+      <h1>Private Agentic Search Across Your Knowledge Base</h1>
+
+      <p class="lead">All companies accumulate knowledge, spread across wiki pages, Jira tickets, markdown files, SharePoint documents, and more. Finding the right information without searching each platform individually — often on tools without a state-of-the-art search — is tedious and time-consuming.</p>
+
+      <p>What if we could push everything into an overarching index, give an agent access, and simply retrieve information across all platforms by talking to it? Claude, ChatGPT and co. are very powerful tools, and they do exceptionally well at agentic search. If you let these models search your knowledge base, they can understand it, answer questions, and reason about it. But what they cannot offer is privacy.</p>
+
+      <p>With a bit of coding and a bit of local GPU power, you can build a self-contained agentic search across a large knowledge base — one that does not require a connection to the outside world.</p>
+
+      <p>As a proof of concept, I built a local, fully self-contained agentic search across a large knowledge base. I used the entire dump of the English Wikipedia as a placeholder for a local knowledge base: 7.2 million articles, 116 GB of uncompressed text. Everything is indexed, along with vector embeddings, in OpenSearch, and my locally running agent — powered by Qwen 3.6 — reliably answers all kinds of questions, as long as the answer is somewhere in those 7.2 million articles.</p>
+
+      <h2>How well does it work?</h2>
+      <p>Before jumping into the technical details, let's evaluate how capable the agent is at answering questions. I used Fable 5, the most powerful LLM we have access to as of writing, as the judge. I asked it to come up with 10 questions for my agentic search and to rate the results.</p>
+      <p>Five of the questions had to be after the knowledge cut-off (end of 2025) of Qwen 3.6. For those, the answers had to come from the knowledge base — our Wikipedia index. The questions ranged from <em>“What was the result of the 2026 Hungarian parliamentary election?”</em> to <em>“What was the estimated population of the Roman Empire at its peak, and roughly when was that?”</em></p>
+      <p>Fable 5 scored 8 out of 10 questions with the max score of 5, and 4 for the other two. Overall, 4.8 out of 5 — pretty impressive, given the agent has no internet connection and its LLM runs on a MacBook.</p>
+
+      <h2>Implementation Details</h2>
+
+      <h3>Architecture Overview</h3>
+      <p>The entire system is self-contained, with no access to the internet. No data is shared with anybody.</p>
+      <figure>
+        <img src="images/architecture.jpg" alt="Architecture diagram of the self-contained agentic search: a Web UI and CLI both talk to an Agent running a tool loop; the agent queries an LLM (Qwen 3.6, 35B-A3B, via Ollama) and an OpenSearch Wikipedia index (keyword + vector, hybrid search with RRF fusion), which uses a Qwen3-Embedding-4B embedding model.">
+        <figcaption>Self-contained architecture: agent, LLM, OpenSearch and the embedding model all run locally.</figcaption>
+      </figure>
+
+      <h3>Data Ingestion</h3>
+      <p>First, I parsed and cleaned all Wikipedia articles into raw text without any wiki-markup. While doing so, I also extracted the first paragraph as its own field. For most articles, the first paragraph is the lead.</p>
+      <p>Then I indexed all 7.2 million articles with vector embeddings in OpenSearch. For the embeddings I used <code>Qwen3-Embedding-4B</code>, which only needs around 12 GB of VRAM. I decided to embed only the lead — doing it on the entire article would have ballooned the indexing time on a single GPU from around 75 hours to more than 15 days.</p>
+
+      <h3>Semantic Search</h3>
+      <p>I do a lexical search on the title and text (with a boost of 2 on the title), and a vector search on the embedding of the lead. The results are fused together with Reciprocal Rank Fusion (<code>RRF</code>).</p>
+
+      <h3>Agentic Loop</h3>
+      <p>I registered two tools for the agent. The first is a hybrid search over the knowledge base — the Wikipedia index. The agent sees the title and the first 300 words of the top 10 documents. The second tool fetches a specific article in its entirety. The agent first runs a search and then decides whether any of the returned articles are of interest; if so, it can choose to fetch the complete article.</p>
+
+      <h3>Used Hardware</h3>
+      <p>OpenSearch runs on an Ubuntu desktop with a 12-core CPU, 64 GB of RAM, and an <code>RTX 5080</code>. That GPU is too small to run the agent, but it's used for generating vector embeddings. The agent runs locally on my MacBook. Qwen 3.6 — <code>qwen3.6:35b-a3b-q8_0</code>, to be precise — requires around 38 GB of VRAM.</p>
+
+      <h3>Real-World Deployment</h3>
+      <p>Even for a single user, something like an Apple M5 Pro is too slow, especially if the agent decides to fetch entire articles from the OpenSearch index. Some of these articles are thousands of words long, and processing them can take more than 60 seconds on an M5 Pro.</p>
+      <p>So I ran some tests with rented Nvidia GPUs — cards like an <code>A40</code> with 48 GB of VRAM or an <code>A100</code> with 80 GB of VRAM. Inference on an A100 is around 10× faster than on an M5 Pro. Such a GPU is more than sufficient and gives some headroom for concurrent users. The entire setup could run well on a single node with a modern 8-core CPU, 64 GB of RAM, and an enterprise GPU like an A100, and could serve multiple users.</p>
+
+      <h2>Conclusion</h2>
+      <p>This proof of concept shows that a fully local, agentic search over a large knowledge base works — and works reliably. 7.2 million articles, no internet connection, nothing ever leaving your infrastructure.</p>
+      <p>A local agentic search gives you the reasoning power of a modern LLM applied to your own data, fully self-contained. The hardware is affordable and the tooling is mature. If you are sitting on a large, fragmented knowledge base and care about privacy, this is achievable right now.</p>
+
+      <div class="article-foot">
+        <a href="../">← Back to all articles</a>
+      </div>
+    </article>
+  </main>
+
+  <footer class="wrap">
+    © <span id="yr"></span> Renato Häberli
+  </footer>
+
+  <script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+</body>
+</html>
