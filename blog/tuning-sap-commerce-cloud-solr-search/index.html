@@ -80,6 +80,13 @@
     font-weight: 600;
     margin: 40px 0 14px;
   }
+  article h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--accent-deep);
+    letter-spacing: 0.02em;
+    margin: 28px 0 12px;
+  }
   article p {
     font-size: 1.08rem;
     color: var(--ink);
@@ -198,6 +205,22 @@
       <p>The good news: you don't have to maintain synonyms in both directions manually. You can leave the to-field empty and put a comma-separated list into the from-field, like <code>couch, sofa</code>. SCC will then expand this to <code>couch → sofa</code> and <code>sofa → couch</code> during the synonyms export to Solr.</p>
       <p>This works with larger groups too, and also with multi-term synonyms. Just extend the list: <code>couch, sofa, chaise lounge</code>. With that, you have configured a group of three bi-directional synonyms, one of which is a multi-term.</p>
       <p>The one thing to keep in mind is that the from-field should not be longer than 5–6 terms, since the number of combinations grows fast — especially if you do the synonym expansion at query time.</p>
+
+      <h2>Tip 5: Move From an OR- to an AND-Search</h2>
+      <p>For some inexplicable reason, searching for more than one term like “black shirt” runs a search for “black” OR “shirt”, so all products matching just one of the terms are returned.</p>
+      <p>This is not only counterintuitive — a user expects a more specific search to return fewer products — it also leads to hundreds, or even thousands, of irrelevant products being returned. It gets worse the more terms you add. A search for “slim fit black shirt Tommy Hilfiger” could return half the products in your index. Besides confusing the customer, it also makes your facet filters very messy: the more irrelevant products you return, the more irrelevant filters you get.</p>
+      <p>Unfortunately, switching from OR to AND is not a configuration, and it's not as easy as overriding a single method to swap the OR for an AND. SCC's Solr query is one long OR chain, and if all the ORs are replaced by ANDs the query stops working. It takes some custom code to only swap the OR between the different search terms.</p>
+      <p><code>FacetSearchQueryBasicPopulator</code> and <code>TermAdjustableDisMaxFreeTextQueryBuilder</code> are where I found it easiest to make the change.</p>
+
+      <h2>Tip 6: Do Not Use Full-Indexing</h2>
+      <p>Most of the indexing setups I have seen run a nightly full-indexing of the product index, plus a frequent update/delete job at short intervals — something like every 5 minutes. This simple setup might be sufficient at the beginning, but it has two fundamental flaws.</p>
+      <p>The first is that it does not scale. It might work at the launch of your first shop, with a single product index of 100k products and 100 attributes each. But the volume — and with it the time your full-indexing job requires — can grow dramatically. The number of products online, the number of attributes you index per product, and the number of product indexes you run (e.g. by rolling out to different countries) will all grow. Soon the job keeps running for hours, and at 7 am on the day Black Friday starts, your shop still shows yesterday's non-discounted prices.</p>
+      <p>The second issue is that a nightly full-indexing creates a dangerous reliance that grows over time. Say you introduce a new attribute, like an energy label on the product tile of the search result page. Your update job will not pick it up — it does not know about energy labels — but no one notices, because the nightly full-index recreates every document from scratch, label included. These hidden dependencies accumulate, and by the time your index outgrows the nightly window, no one knows how many features actually rely on the job.</p>
+
+      <h3>Use Partial-Update Jobs</h3>
+      <p>Say the availability of a single product changes — it's now out of stock. This is most likely picked up by your update job, which will then rebuild the entire Solr document with 200+ attributes, requiring hundreds of DB fetches just for that one product.</p>
+      <p>There is a better way. Using a partial-update job, <code>SolrExtIndexerCronJob</code>, you can send a partial update to Solr that only includes the id and the <code>inStock</code> attribute. Solr then just updates that attribute on the existing document. So instead of running the update job every 5 minutes to pick up stock changes, it is much better to run a dedicated partial-update job that only checks highly volatile attributes like availability and stock level.</p>
+      <p>With that in place, your standard update job only needs to run a couple of times a day to pick up changes on the product itself — which are very rare compared to changes in prices and stock levels. With one or even two partial-update jobs, and the update job set up correctly, there is no need to run the full-indexing job at all.</p>
 
       <div class="article-foot">
         <a href="../">← Back to all articles</a>
