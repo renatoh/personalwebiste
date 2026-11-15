@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SX10 Niche Airflow</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: full-height 3D stage with an instrument panel on the right (stacks below on phones) */
+:root {
+  --bg: #e9edf0; --panel: #f8fafb; --fg: #1a2127; --muted: #5a6772; --line: #d3dade;
+  --accent: #0a7f9f; --accent-soft: #d6eef4; --stage: #dfe5e9;
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e1317; --panel: #141b20; --fg: #e3e9ec; --muted: #8e9ca6; --line: #24303a;
+  --accent: #3cb7d9; --accent-soft: #123441; --stage: #10171c; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0e1317; --panel: #141b20; --fg: #e3e9ec; --muted: #8e9ca6; --line: #24303a;
+  --accent: #3cb7d9; --accent-soft: #123441; --stage: #10171c; color-scheme: dark }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-ui); font-size: 14px; }
+.app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 340px; }
+.stage { position: relative; min-width: 0; min-height: 0; background: var(--stage); overflow: hidden; }
+#gl { display: block; width: 100%; height: 100%; touch-action: none; }
+.labels { position: absolute; inset: 0; pointer-events: none; }
+.loading { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; font: 500 13px var(--font-ui); color: var(--fg); }
+.lbl { position: absolute; transform: translate(-50%, -100%); font: 500 11px/1.2 var(--font-data);
+  color: var(--fg); background: color-mix(in srgb, var(--panel) 82%, transparent); border: 1px solid var(--line);
+  padding: 3px 6px; border-radius: 4px; white-space: nowrap; }
+.stage-top { position: absolute; top: 12px; right: 12px; justify-content: flex-end; display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { font: 500 12px var(--font-ui); background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+.chip:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.legend { position: absolute; bottom: 12px; left: max(12px, env(safe-area-inset-left, 0px)); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font: 11px var(--font-data); color: var(--muted); }
+.legend canvas { display: block; width: 160px; height: 10px; border-radius: 2px; margin: 4px 0 2px; }
+.legend .ends { display: flex; justify-content: space-between; }
+aside { background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; min-width: 0;
+  padding-block: 18px 24px; padding-left: 18px; padding-right: max(18px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 18px; }
+h1 { font-size: 18px; font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+.sub { color: var(--muted); margin: 4px 0 0; line-height: 1.45; }
+.sec { display: flex; flex-direction: column; gap: 8px; }
+.eyebrow { font: 500 11px var(--font-ui); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.big { font: 500 26px var(--font-data); font-variant-numeric: tabular-nums; }
+.big small { font-size: 13px; color: var(--muted); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.seg { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { font: 500 13px var(--font-ui); background: transparent; color: var(--fg); border: 0; padding: 8px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.row label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.kv { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; font-variant-numeric: tabular-nums; margin: 0; }
+.kv dt { color: var(--muted); font-size: 12.5px; } .kv dd { margin: 0 0 8px; font-family: var(--font-data); }
+.coil { display: flex; gap: 12px; align-items: flex-start; }
+.coil canvas { width: 96px; height: 126px; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 3px; flex: none; }
+.coil p { margin: 0; color: var(--muted); line-height: 1.45; font-size: 12.5px; min-width: 0; }
+.note { color: var(--muted); font-size: 12.5px; line-height: 1.5; border-top: 1px solid var(--line); padding-top: 14px; margin: 0; }
+.note ul { margin: 6px 0 0; padding-left: 18px; }
+#err { color: #b4232c; }
+@media (max-width: 760px) {
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(300px, 58%) auto; }
+  aside { border-left: 0; border-top: 1px solid var(--line); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+}
+</style>
+</head>
+<body>
+
+
+<div class="app">
+  <div class="stage">
+    <canvas id="gl" aria-label="3D view of the heat pump niche with moving air particles"></canvas>
+    <div class="labels" id="labels"></div>
+    <div class="loading" id="loading">Loading flow data…</div>
+    <div class="stage-top">
+      <button class="chip" id="view-back" type="button">View from behind</button>
+      <button class="chip" id="view-front" type="button">View from front</button>
+      <button class="chip" id="view-top" type="button">View from above</button>
+    </div>
+    <div class="legend" aria-hidden="true">Air speed
+      <canvas id="legend" width="160" height="10"></canvas>
+      <div class="ends"><span>0</span><span id="legend-max">1.5 m/s</span></div>
+    </div>
+  </div>
+  <aside>
+    <div>
+      <h1>SX10 Niche Airflow</h1>
+      <p class="sub">3D airflow model of the AEROTOP SX10 under the stairs: 46 cm to the back wall, 37 cm to the right wall, louvres angled 30° down, stairs on two steel stringers, unit on rubber feet. Switch between the stair setups. Drag to rotate, scroll or pinch to zoom.</p>
+    </div>
+    <div class="sec">
+      <span class="eyebrow">Fan airflow</span>
+      <div class="big"><span id="q">2,400</span> <small>m³/h · <span id="pct">62</span> % of max</small></div>
+      <input type="range" id="fan" min="0" max="100" value="62" aria-label="Fan airflow in percent of maximum">
+      <div class="row" style="color:var(--muted);font-size:12px"><span>off</span><span>3,900 m³/h (SX10 max)</span></div>
+    </div>
+    <div class="sec">
+      <span class="eyebrow">Stairs</span>
+      <div class="seg" role="group" aria-label="Stair treads 7 to 13">
+        <button type="button" id="tr-all" aria-pressed="true">All treads on</button>
+        <button type="button" id="tr-cut" aria-pressed="false">Treads 7–13 removed</button>
+        <button type="button" id="tr-none" aria-pressed="false">Whole stair removed</button>
+      </div>
+    </div>
+    <div class="sec">
+      <span class="eyebrow">Show</span>
+      <div class="seg" role="group" aria-label="Display mode">
+        <button type="button" id="mode-p" aria-pressed="true">Air particles</button>
+        <button type="button" id="mode-s" aria-pressed="false">Coil feed lines</button>
+      </div>
+      <p id="lines-note" style="margin:0;color:var(--muted);font-size:12px"></p>
+      <div class="row"><label><input type="checkbox" id="slice"> Speed slice at height</label><span id="slice-h" style="font-family:var(--font-data)">0.6 m</span></div>
+      <input type="range" id="sliceh" min="5" max="200" value="60" aria-label="Slice height in centimetres">
+      <div class="row"><label><input type="checkbox" id="xray" checked> See-through walls</label></div>
+      <div class="row"><label><input type="checkbox" id="lbls" checked> Labels</label></div>
+    </div>
+    <div class="sec">
+      <span class="eyebrow">Air reaching the coil</span>
+      <div class="coil">
+        <canvas id="coil" width="16" height="21" aria-label="Air speed across the coil face"></canvas>
+        <p>Air speed through the coil, seen from behind the unit. Blue = 20 % below average, orange = 20 % above. <span id="coil-txt"></span></p>
+      </div>
+      <dl class="kv">
+        <dt>Variation across coil</dt><dd id="cov">–</dd>
+        <dt>Fan pressure needed for ~2,200 m³/h</dt>
+        <dd>All treads on: <span id="dp-all">–</span><br>Treads 7–13 removed: <span id="dp-cut">–</span><br>Whole stair removed: <span id="dp-none">–</span><br>Free-standing: <span id="dp-free">–</span></dd>
+        <dt>Coil variation at ~2,200 m³/h (same order)</dt><dd><span id="cov-all">–</span> / <span id="cov-cut">–</span> / <span id="cov-none">–</span> / <span id="cov-free">–</span></dd>
+      </dl>
+    </div>
+    <p class="note"><strong>Model.</strong> Lattice Boltzmann simulation on a 2 cm grid (12 million cells), air at 1.23 kg/m³ (600 m, −5 °C), shown here on a 4 cm grid; feed lines traced on the full 2 cm grid. The fan is regulated to each target airflow; the pressure it needs shows how much the surroundings resist.
+      <ul>
+        <li>Fan modelled as an even push, coil as an even resistance; louvre slats, wind and cold outlet air sinking are left out.</li>
+        <li>The 6 cm gap under the unit is three grid cells.</li>
+        <li>All treads on and treads 7–13 removed: four fan levels, interpolated in between. Whole stair removed: about 2,200 m³/h only, scaled for other levels.</li>
+        <li>It shows how air reaches the unit. It cannot reproduce the 67 Hz drone, which forms inside the unit.</li>
+      </ul>
+      <span id="err"></span>
+    </p>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script id="simdata" type="application/json">{"dims": [112, 65, 90], "origin": [-2.48, 0.0, -0.6], "cell": 0.04, "louvre": 30, "free": {"Q": 2223, "cov": 0.059, "dp": 15.34}, "configs": {"all": {"cases": [{"name": "site_all_1100", "Q": 1110, "dp": 7.85, "cov": 0.043, "scale": 0.6882572174072266, "coil": "td7c3Nnc3tvY2NnX19XZs87w7/Ty8vPy8vPz8/Tv78vY9vP59fb39/Pz9vT28vTc2Pr3/Pn6+vv6+fr6+/j63tf59vv5+/r6+vj5+Pr1+N3X+vf8+vr6+/v5+fn69vnd1vn2+/n5+fr6+vr4+vb429b59/z6+vv6+vv6+fv3+dzV+vf9+vr6+vv7+vr7+Pnc1Pn3/Pr6+/r6+/v6+/j53NL59vz6+/v7+/r7+/z4+tzS+fb8+fv8+/v7+/v8+frd0fj1+/n7+/z7+/v7/Pj63dH59vz5+/z7+/v7+/z5+t3R+fb8+fv8/Pv7+/v9+frc0/r2/fn7/f38/Pz9/vr73NP59fv4+vv7+/v7/P34+tzV/Pj9+vz9/f3+/f3/+vze1PPy+vb5+/v6+/r6/Pf43M3v8fbz8/Tz8vPz9PXz9dS03t3g3t3f4OHh4eHi4OC5", "coilShape": [21, 16], "coilMax": 0.40923482179641724}, {"name": "site_all_2200", "Q": 2219, "dp": 15.41, "cov": 0.064, "scale": 1.2626316547393799, "coil": "msnKycXEycjDwsXBwb7Dmbrq6/Ht7vDv7u7v7vDr6LfA7u728vLy9O/x9PDz7u3HwvTz+vX39vj29vn3+fX2zcHz8ff09/X29fT39vfy8svA8/L49Pf39/f2+Pf48/PJwfTz+PX4+Pf3+Pj39/Pyx8P19fv4+Pn4+fn59/j19MjD9vX8+fj5+fr5+ff59fXJwvf2/Pn4+fn5+fn4+fb1yb/29v35+vv6+fr5+fv39sm98/X9+fn6+fr6+vr8+PbMu/L0/Pn6+fv7+/r7/Pf1yrrz8vr3+fr6+/r6+vr19Me59PL79/n6+/v7+/v79/bHuvX0/fj5+vz9/fz9/fj2yLvz8vv3+Pj5+vv6+/v29Ma99vT9+Pn5+/z9/P3/+/nKvOzu+PHz9fn7+/r6/Pj2y7zr8Pbx8/Dv8fHw9Pby8sabyMnOzsbIztTV09DP0NGj", "coilShape": [21, 16], "coilMax": 0.8001049757003784}, {"name": "site_all_3000", "Q": 3027, "dp": 20.68, "cov": 0.076, "scale": 1.6503548622131348, "coil": "jL2+wbu3ubu3tbi0tLK3jK/n6O7p6+3t6+rt6+/o5Ku06uvz8e7v8+zt8e7x6ui8tfDx+PP09Pjy8/f19/LywbPv7vXx9PL18vL18/Tu7r6z7+/28fXz9fT09vT28O+9s/Dv9fL19fT19fb19fHwu7by8fn29vj29/j39vf08r639PP6+Pf4+Pn49/f39PO+t/X1+/j3+Pj4+Pf39/TzvrX19vz5+fr4+fr5+Pr19L+y8PT7+fj4+fn4+Pj69PG8r/Dy+vj5+fv5+fn5+fTwua3v8Pj19/n6+Pj39vjz8rus8fD69fj6+vv7+fr79fS8rfHx+/f5+/v8+/z8/fj1vq3x7/n1+fn5+/v7/P349b+v8/P89/r6+vz8+/3/+/rDr+js9/H08/b4+fj5+vf0wbLq7vTz8u/w8vPw8vPw8L6RubzGwsHHx8TFycrKyMeW", "coilShape": [21, 16], "coilMax": 1.0733757019042969}, {"name": "site_all_3900", "Q": 3935, "dp": 26.31, "cov": 0.086, "scale": 2.0165555477142334, "coil": "g7S3t7Ktr7Gtrayqqamtgqfm5+7q6u3u6+zs7O/m4qGq6ery7+zt8ezt7+7v6Oayq/Dw+PLz9PXy8/b19vDxuqnu7fXx8/Hy8u/08/Pt7reo7u/38fXy9PPz9fT18O+1qe/v9vL09PX09Pb19vHws6rx8vn19/j29/f39/f08bWp8vL59/j5+fj39/j49PO2qPLz+vf4+Pn4+Pf4+PXztqbw8/36+vn6+fv7+fr19Lal8PP9+fn5+vn6+fn69vO3pPHy+/j6/Pv6+vr6+/bws6Py8fr1+Pr6+fn4+Pr18bKj8/L79vn8/f39+vr79vW0o/Lx/Pb5+fv7/fz8/ff1tKPx7/r19/n4+fv8/Pz39bal8vL99/r6+vr7/P3/+vm5p+fq9/L39Pb19/j7/PTyuK7q7vTx8/Lz8PDy9PPx8reJsLXBwLu6ub7BxMbDvLuN", "coilShape": [21, 16], "coilMax": 1.3581677675247192}]}, "cut": {"cases": [{"name": "site_cut_1100", "Q": 1110, "dp": 7.85, "cov": 0.043, "scale": 0.6685305833816528, "coil": "tdzZ29nZ2dnY2djY2dbZs87x8Pbz8/Pz8/Pz9PXw8M3Y9PH49fb29vX19vX38vTc2fr3/Pr7+/v7+/v6/Pj63tj49fv5+vn6+vn6+fr2+N3Z+fb7+fr6+vr6+vn79/ne2Pj2+/n5+vn5+vr5+vf43Nj59/z6+vv6+vv6+vv4+d3Y+ff9+vr7+/v7+/r8+Prd1/n3/Pr6+/r6+/v6+/j53dX59/36+/v7+vv8+/z4+t3U+Pf9+vv8/Pv7+/z9+fre0/j1/Pr7+/z7+/v7/Pj63dP59vz5+/z8+/v7+/35+93T+vb9+vv8/Pv8/Pv9+frd1fr3/fr8/f39/P38/vr73dX69vz5+/v7+/v8+/34+t3X/Pj++vz9/f3+/f3/+vze1fXz+vf5+/v6+vr6/Pf33M7w8fb09PTz8vPz9Pbz9dS03t7g3t7g4eHh4eHi4OC5", "coilShape": [21, 16], "coilMax": 0.4086877405643463}, {"name": "site_cut_2200", "Q": 2219, "dp": 15.4, "cov": 0.063, "scale": 1.2502827644348145, "coil": "msbExsPDw8PCwsPCw8DDmbvs7vPv8PDw7+/w8PLs6rrC7u728fPz8/Py8/H07+7KxPT1+vf4+Pn5+Pn4+vb2zcPz8vj19/b49/b49vj09MzC9PT69vj3+Pj4+Pf59vbMwfPz+fb4+Pj4+Pj4+fX1ysL09Pv4+Pn5+fr6+fr39svD9fX8+Pj5+vr6+vn79/fKw/b2/Pn5+fn6+vr5+vf2ysL29/36+/v8/Pr7+vz498u/9Pb9+vv8+vv7/Pv8+PfMvfP1/fr7+/z8+vz7/Pj3y7zz9Pz4+vv7+/v7+vz5+My89fT8+Pr7/P39+/v9+vfKvfb0/fj6+/3+/fz8/fj2x7708/v3+Pn7+/z7+vv29sjA9/b++fn7/f3//f3/+vrLvu/x+vP1+fv7+/r6/Pf1yr7r8ffz8fLy8vPz9fby8sacy8zQzsrMztLU09LRz8+i", "coilShape": [21, 16], "coilMax": 0.7964971661567688}, {"name": "site_cut_3000", "Q": 3026, "dp": 20.65, "cov": 0.075, "scale": 1.5576345920562744, "coil": "jbq4ube2tra1tba1tbO2jLDo6/Hs7ezt7Ozt7e/p5q+26uvz7vDw8PDv8O7x7Oq+t/Dy+PT29fb29vf19/Tzwrbv7/by9fP19fT18/Xx8cG18PH48/b19vb19vX39PPAtO/w9/T29vb29vb19/PyvrTw8fn19vj3+Pj49/j187+18fH59fb3+fn4+Pj59fO/t/Lz+fX29/j4+Pj4+PX0wLj19fz5+fr6+vr6+fr29cC29Pb9+fr6+/r6+vn79/XBs/L1/fr6+vr6+fv6+vj1wbDw8/v3+fn5+vn4+Pn39b+v8fL7+Pn7/Pz8+vn69fO8sPLy+/b4+/z9/fv7/Pf2vrDx8Pn2+Pj4+vv7+/z29b6y9fT9+fr4+fz9/P3/+vjAsuvu+PT19PX5+vn6/PXwv7Tq7/Tx8vHx8vLz9fXw8L6Rvr/IyMHCxMnLysrLyMSW", "coilShape": [21, 16], "coilMax": 1.069452166557312}, {"name": "site_cut_3900", "Q": 3934, "dp": 26.28, "cov": 0.086, "scale": 1.9257177114486694, "coil": "g7Cur62srKyrq6uqq6mtgqfo6/Ds7Ozs7Ozs7O/o5Kat6Ory7fDv8O/v8O3x7Oi2ru/x9/P19fb29fb19/Pyuazu7/Xy9fP19fP18/Tx8Lmr8PH48vb19vb19/X38/K4qu/w+PT29vf29vf29/Pytqrv8fn19vj4+Pn49/n187eq8fH59ff4+fr5+fj59fO2rPLy+fT3+fj5+fj5+fXztq319fz5+vr7/Pv7+/v39bet9Pb++/v8+/r7+vr89/W5qfL2/vv7/P37+vr6+/f2uabv8/z4+vv6+/v5+fr39bel8fP8+Pv9/v79+/v8+PW1pvPz/fj6/Pz9/vz8/vj2tqby8fv3+vn3+/38+/z39bao9fT++fv6+v39/v3/+vi3qOrt+PP39/T2+fn4+fPxt67s8fby9PT08/T09fTx8reJtLa/wb69vsLExMTCu7uN", "coilShape": [21, 16], "coilMax": 1.351685643196106}]}, "none": {"cases": [{"name": "site_none_2200", "Q": 2220, "dp": 15.41, "cov": 0.063, "scale": 1.2402976751327515, "coil": "m8bExsPDw8PDwsPCw8HDmrvs7vPv7+/v7+/w8PLs67vC7u718fPy8/Py8/H07+7KxPT1+vf4+Pn5+Pn4+vf2zcLz8vj19/b39/b49vj09MzC8/T69ff3+Pj4+Pf59vbMwfLz+fb4+Pj4+Pj4+fb1ysH09Pv4+fn5+fr6+fr39svC9fX7+Pn5+vr6+vr79/fKw/X1+/j5+fn6+vr6+vf3ysH29fz5+/v7/Pn8+/z498vA9fb9+vv8+/v6/Pr8+PfMv/X2/fr7+/z7+vv7/Pj3y7719f34+vv7+/v7+vz5+My99vX9+fv7/Pz9+/v9+vjKvfb0/fj6+/z+/vz8/fj2x7708/v3+Pn7+/z7+vv29sjA+Pb++fn6/f3//f3/+vrMvvDx+vP1+Pv7+/r6/Pf1y73r8ffz8vLy8vLz9fby8sacy8zQzsvLztHU09PSz9Ci", "coilShape": [21, 16], "coilMax": 0.7965450286865234}]}}}</script>
+<script>
+(async function () {
+const $ = id => document.getElementById(id);
+const fmt = n => Math.round(n).toLocaleString('de-CH');
+let D;
+try { D = JSON.parse($('simdata').textContent); } catch (e) { $('err').textContent = 'Simulation data could not be read.'; return; }
+if (!window.THREE) { $('err').textContent = 'The 3D library did not load. Reload the page to try again.'; return; }
+
+// ---------- data (loaded from separate files, or embedded in the local copy) ----------
+const [NX, NH, ND] = D.dims, CELL = D.cell, [OX, OH, OD] = D.origin;
+const dec = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function getBin(p) {
+  if (window.__EMBED && window.__EMBED[p]) return dec(window.__EMBED[p]).buffer;
+  const r = await fetch('web_data/' + p); if (!r.ok) throw new Error(p); return r.arrayBuffer();   // binary files
+}
+function parseLines(buf) {
+  const dv = new DataView(buf), n = dv.getUint32(0, true), lens = new Uint32Array(buf.slice(4, 4 + 4 * n));
+  const data = new Int16Array(buf.slice(4 + 4 * n)), out = []; let o = 0;
+  for (let i = 0; i < n; i++) { out.push(data.subarray(o * 4, (o + lens[i]) * 4)); o += lens[i]; }
+  return out;
+}
+const loading = $('loading'); let done = 0, total = 0;
+async function loadCfg(key, g) {
+  total += 1 + 2 * g.cases.length;
+  const tick = x => { done++; loading.textContent = 'Loading flow data… ' + Math.round(done / total * 100) + ' %'; return x; };
+  const solid = new Uint8Array(tick(await getBin('solid_' + key + '.bin')));
+  const cases = await Promise.all(g.cases.map(async c => {
+    const raw = new Int8Array(tick(await getBin('u_' + c.name + '.bin'))), f = new Float32Array(raw.length), k = c.scale / 127;
+    for (let i = 0; i < raw.length; i++) f[i] = raw[i] * k;
+    const lines = parseLines(tick(await getBin('lines_' + c.name + '.bin')));
+    return { Q: c.Q, cov: c.cov, f, lines, coil: dec(c.coil), coilShape: c.coilShape, coilMax: c.coilMax, dp: c.dp };
+  }));
+  return { solid, cases };
+}
+let CFG;
+try {
+  const [a, b, c] = await Promise.all([loadCfg('site_all', D.configs.all), loadCfg('site_cut', D.configs.cut), loadCfg('site_none', D.configs.none)]);
+  CFG = { all: a, cut: b, none: c };
+} catch (e) { loading.textContent = 'The flow data could not be loaded. Reload the page to try again.'; return; }
+loading.hidden = true;
+let cfgName = 'all', solid = CFG.all.solid, cases = CFG.all.cases;
+const QMAX = 3900;
+const ref = (n) => CFG[n].cases.reduce((b, c) => Math.abs(c.Q - D.free.Q) < Math.abs(b.Q - D.free.Q) ? c : b);
+const pa = v => v.toFixed(2) + ' Pa', pc = v => '±' + (v * 100).toFixed(1) + ' %';
+for (const n of ['all', 'cut', 'none']) { $('dp-' + n).textContent = pa(ref(n).dp); $('cov-' + n).textContent = pc(ref(n).cov); }
+$('dp-free').textContent = pa(D.free.dp); $('cov-free').textContent = pc(D.free.cov);
+
+// blended velocity field for the current fan setting
+let A = cases[0], B = cases[0], wA = 1, wB = 0, curQ = 2400;
+function setFan(q) {
+  curQ = q;
+  if (q <= cases[0].Q) { A = B = cases[0]; wA = q / cases[0].Q; wB = 0; }
+  else if (q >= cases[cases.length - 1].Q) { const c = cases[cases.length - 1]; A = B = c; wA = q / c.Q; wB = 0; }
+  else for (let i = 0; i < cases.length - 1; i++) if (q <= cases[i + 1].Q) {
+    A = cases[i]; B = cases[i + 1]; const t = (q - A.Q) / (B.Q - A.Q); wA = 1 - t; wB = t; break; }
+}
+const v = [0, 0, 0];
+function sample(x, y, z) {   // world metres -> m/s, trilinear
+  let gx = (x - OX) / CELL - 0.5, gy = (y - OH) / CELL - 0.5, gz = (z - OD) / CELL - 0.5;
+  if (gx < 0 || gy < 0 || gz < 0 || gx > NX - 1.001 || gy > NH - 1.001 || gz > ND - 1.001) return null;
+  const i = gx | 0, j = gy | 0, k = gz | 0, fx = gx - i, fy = gy - j, fz = gz - k;
+  v[0] = v[1] = v[2] = 0;
+  for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) for (let c = 0; c < 2; c++) {
+    const w = (a ? fx : 1 - fx) * (b ? fy : 1 - fy) * (c ? fz : 1 - fz);
+    const idx = (((i + a) * NH + (j + b)) * ND + (k + c)) * 3;
+    for (let n = 0; n < 3; n++) v[n] += w * (wA * A.f[idx + n] + wB * B.f[idx + n]);
+  }
+  return v;
+}
+function isSolid(x, y, z) {
+  const i = Math.floor((x - OX) / CELL), j = Math.floor((y - OH) / CELL), k = Math.floor((z - OD) / CELL);
+  if (i < 0 || j < 0 || k < 0 || i >= NX || j >= NH || k >= ND) return false;
+  return solid[(i * NH + j) * ND + k] === 1;
+}
+
+// ---------- colours ----------
+const ramp = [[0.00, [32, 70, 160]], [0.30, [20, 160, 200]], [0.55, [120, 205, 120]], [0.78, [245, 200, 60]], [1.00, [235, 90, 40]]];
+function col(t, out) {
+  t = Math.max(0, Math.min(1, t));
+  for (let i = 0; i < ramp.length - 1; i++) if (t <= ramp[i + 1][0]) {
+    const [t0, c0] = ramp[i], [t1, c1] = ramp[i + 1], u = (t - t0) / (t1 - t0);
+    out[0] = (c0[0] + (c1[0] - c0[0]) * u) / 255; out[1] = (c0[1] + (c1[1] - c0[1]) * u) / 255; out[2] = (c0[2] + (c1[2] - c0[2]) * u) / 255; return out; }
+  return out;
+}
+const VMAX = 1.5;
+(function legend() {
+  const c = $('legend'), g = c.getContext('2d'), o = [0, 0, 0];
+  for (let x = 0; x < c.width; x++) { col(x / (c.width - 1), o); g.fillStyle = `rgb(${o[0]*255|0},${o[1]*255|0},${o[2]*255|0})`; g.fillRect(x, 0, 1, c.height); }
+  $('legend-max').textContent = VMAX + ' m/s';
+})();
+
+// ---------- scene ----------
+const canvas = $('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(42, 1, 0.05, 60);
+const controls = new THREE.OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.target.set(0.4, 0.7, 0.5);
+const views = {
+  back:  [-1.5, 3.3, -1.9],
+  front: [0.9, 1.8, 4.6],
+  top:   [0.4, 5.2, 1.2]
+};
+function view(n) { camera.position.set(...views[n]); controls.target.set(0.45, 0.6, 0.45); controls.update(); }
+view('back');
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f94, 0.85));
+const sun = new THREE.DirectionalLight(0xffffff, 0.55); sun.position.set(-3, 6, 4); scene.add(sun);
+
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const isDark = () => matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme !== 'light' || document.documentElement.dataset.theme === 'dark';
+const wallMats = [];
+function mat(color, opts = {}) { return new THREE.MeshStandardMaterial(Object.assign({ color, roughness: 0.9, metalness: 0.0 }, opts)); }
+function box(x0, x1, y0, y1, z0, z1, m) {   // x right, y up, z towards front (metres)
+  const g = new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0), me = new THREE.Mesh(g, m);
+  me.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2); scene.add(me); return me;
+}
+// ground
+const ground = box(-2.5, 2.0, -0.02, 0, -0.6, 3.0, mat(0x7f9a6a));
+const UH = 1.25, WALL = UH + 1.40;
+const concrete = mat(0xb9bdbf, { transparent: true, opacity: 0.35, depthWrite: false }); wallMats.push(concrete);
+box(-2.5, 2.0, 0, WALL, -0.6, 0, concrete);                          // back wall (terrace behind)
+box(1.705, 2.0, 0, WALL, 0, 1.18, concrete);                         // right wall
+const treadMat = mat(0x9a9890), upper = [], ghosts = [], lower = [], stringers = [];
+for (let k = 0; k < 14; k++) {                                        // 14 treads on two steel stringers
+  const xa = -2.0 + 0.26 * k, xb = xa + 0.26, top = 0.18 * (k + 1);
+  if (k <= 5 || k === 13) { lower.push(box(xa, xb, top - 0.09, top, 0.15, 1.05, treadMat)); continue; }
+  upper.push(box(xa, xb, top - 0.09, top, 0.15, 1.05, treadMat));    // treads 7-13: switchable
+  const e = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(0.26, 0.09, 0.9)),
+    new THREE.LineBasicMaterial({ color: 0x8a8f94, transparent: true, opacity: 0.45 }));
+  e.position.set((xa + xb) / 2, top - 0.045, 0.6); scene.add(e); ghosts.push(e);
+}
+const steel = mat(0xa7adb1, { roughness: 0.45, metalness: 0.3, transparent: true, opacity: 0.35, depthWrite: false }), SLOPE = Math.atan2(0.18, 0.26);
+wallMats.push(steel);
+for (const zs of [0.125, 1.075]) {                                    // stringers: 1 cm plates, 28 cm wide
+  const x0 = -2.4, x1 = 1.62, zl = x => 0.18 * ((x + 2.0) / 0.26) + 0.18 + 0.05 - 0.14;
+  const len = (x1 - x0) / Math.cos(SLOPE), g = new THREE.BoxGeometry(len, 0.28, 0.012), m = new THREE.Mesh(g, steel);
+  m.position.set((x0 + x1) / 2, (zl(x0) + zl(x1)) / 2, zs); m.rotation.z = SLOPE; scene.add(m); stringers.push(m);
+}
+function showTreads() {
+  upper.forEach(m => m.visible = cfgName === 'all'); ghosts.forEach(m => m.visible = cfgName === 'cut');
+  lower.forEach(m => m.visible = cfgName !== 'none'); stringers.forEach(m => m.visible = cfgName !== 'none');
+}
+// heat pump: fan section (dark) left, compressor box (grey) right
+const fanMat = mat(0x3c4146, { roughness: 0.6 }), compMat = mat(0x9ea5aa, { roughness: 0.5 });
+const FEET = 0.06;                                                     // unit stands on rubber feet
+box(0.00, 0.85, FEET, UH, 0.46, 1.16, fanMat);
+box(0.85, 1.335, FEET, UH, 0.46, 1.16, compMat);
+box(0.05, 0.85, 0.15, 1.15, 0.455, 0.462, mat(0x2b6cb0, { roughness: 0.4 }));   // coil at the back
+const footMat = mat(0x1d1f21, { roughness: 0.8 });
+for (const fx of [0.06, 1.28]) for (const fz of [0.52, 1.10]) {
+  const f = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, FEET, 16), footMat); f.position.set(fx, FEET / 2, fz); scene.add(f); }
+const LOUV = (D.louvre || 30) * Math.PI / 180, slatMat = mat(0x6b7278);
+for (let z = 0.14; z < 0.9; z += 0.05) {                              // louvres, front edge tilted down
+  const m = box(0.05, 0.85, z - 0.006, z + 0.006, 1.12, 1.19, slatMat); m.rotation.x = LOUV; }
+
+// labels
+const labelDefs = [
+  ['Coil (air in)', [0.45, 1.22, 0.42]],
+  ['Louvres, angled down (air out)', [0.45, 0.98, 1.24]],
+  ['Back wall · 46 cm gap', [-0.5, 1.55, 0.05]],
+  ['Right wall · 37 cm', [1.85, 1.5, 0.55]],
+  ['Stairs on steel stringers', [-1.1, 1.05, 0.6]]
+];
+const labelEls = labelDefs.map(([t]) => { const d = document.createElement('div'); d.className = 'lbl'; d.textContent = t; $('labels').appendChild(d); return d; });
+const tmpV = new THREE.Vector3();
+function placeLabels() {
+  const show = $('lbls').checked, w = canvas.clientWidth, h = canvas.clientHeight;
+  labelDefs.forEach(([, p], i) => {
+    tmpV.set(...p).project(camera);
+    const vis = show && tmpV.z < 1 && Math.abs(tmpV.x) < 1.05 && Math.abs(tmpV.y) < 1.05;
+    labelEls[i].hidden = !vis;
+    if (vis) { labelEls[i].style.left = ((tmpV.x + 1) / 2 * w) + 'px'; labelEls[i].style.top = ((1 - tmpV.y) / 2 * h) + 'px'; }
+  });
+}
+
+// ---------- particles ----------
+const N = 5000, pos = new Float32Array(N * 3), cols = new Float32Array(N * 3), age = new Float32Array(N), life = new Float32Array(N);
+const pg = new THREE.BufferGeometry();
+pg.setAttribute('position', new THREE.BufferAttribute(pos, 3)); pg.setAttribute('color', new THREE.BufferAttribute(cols, 3));
+const points = new THREE.Points(pg, new THREE.PointsMaterial({ size: 0.028, vertexColors: true, transparent: true, opacity: 0.9, depthWrite: false }));
+scene.add(points);
+function spawn(i) {
+  for (let tries = 0; tries < 30; tries++) {
+    let x, y, z;
+    if (Math.random() < 0.8) { x = -0.9 + Math.random() * 2.6; y = 0.05 + Math.random() * 1.7; z = 0.02 + Math.random() * 1.6; }
+    else { x = OX + Math.random() * NX * CELL; y = 0.05 + Math.random() * 2.4; z = OD + 0.6 + Math.random() * (ND * CELL - 0.6); }
+    if (isSolid(x, y, z) || (x > 0 && x < 1.335 && z > 0.46 && z < 1.16 && y < UH)) continue;
+    pos[i * 3] = x; pos[i * 3 + 1] = y; pos[i * 3 + 2] = z; age[i] = 0; life[i] = 3 + Math.random() * 7; return;
+  }
+}
+for (let i = 0; i < N; i++) { spawn(i); age[i] = Math.random() * life[i]; }
+const c3 = [0, 0, 0];
+function stepParticles(dt) {
+  for (let i = 0; i < N; i++) {
+    const o = i * 3; let x = pos[o], y = pos[o + 1], z = pos[o + 2];
+    const u = sample(x, y, z); age[i] += dt;
+    if (!u || age[i] > life[i]) { spawn(i); continue; }
+    const sp = Math.hypot(u[0], u[1], u[2]);
+    x += u[0] * dt; y += u[1] * dt; z += u[2] * dt;
+    if (isSolid(x, y, z) && !(x > 0.05 && x < 0.85 && z > 0.46 && z < 1.16 && y > 0.1 && y < 1.15)) { spawn(i); continue; }
+    pos[o] = x; pos[o + 1] = y; pos[o + 2] = z;
+    col(sp / VMAX, c3); cols[o] = c3[0]; cols[o + 1] = c3[1]; cols[o + 2] = c3[2];
+    if (sp < 0.005 && age[i] > 1) age[i] = life[i];
+  }
+  pg.attributes.position.needsUpdate = true; pg.attributes.color.needsUpdate = true;
+}
+
+// ---------- coil feed lines (traced backwards from the coil) ----------
+let lines = null;
+function buildLines() {
+  if (lines) { scene.remove(lines); lines.geometry.dispose(); }
+  const c = cases.reduce((b, x) => Math.abs(x.Q - curQ) < Math.abs(b.Q - curQ) ? x : b);
+  const scale = curQ / c.Q, P = [], C = [], o1 = [0, 0, 0];
+  for (const L of c.lines) {
+    for (let i = 0; i + 4 < L.length; i += 4) {
+      P.push(L[i] / 1000, L[i + 1] / 1000, L[i + 2] / 1000, L[i + 4] / 1000, L[i + 5] / 1000, L[i + 6] / 1000);
+      col(L[i + 3] / 1000 * scale / VMAX, o1); C.push(...o1); col(L[i + 7] / 1000 * scale / VMAX, o1); C.push(...o1);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
+  lines = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.6 }));
+  lines.visible = mode === 's'; scene.add(lines);
+  $('lines-note').textContent = 'Feed lines from the run at ' + fmt(c.Q) + ' m³/h (2 cm grid).';
+}
+
+// ---------- speed slice ----------
+const sliceCanvas = document.createElement('canvas'); sliceCanvas.width = NX; sliceCanvas.height = ND;
+const sliceTex = new THREE.CanvasTexture(sliceCanvas); sliceTex.magFilter = THREE.LinearFilter;
+const slice = new THREE.Mesh(new THREE.PlaneGeometry(NX * CELL, ND * CELL),
+  new THREE.MeshBasicMaterial({ map: sliceTex, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
+slice.rotation.x = -Math.PI / 2; slice.position.set(OX + NX * CELL / 2, 0.6, OD + ND * CELL / 2); slice.visible = false; scene.add(slice);
+function drawSlice() {
+  const h = +$('sliceh').value / 100; $('slice-h').textContent = h.toFixed(2) + ' m'; slice.position.y = h;
+  const g = sliceCanvas.getContext('2d'), img = g.createImageData(NX, ND), o = [0, 0, 0];
+  for (let i = 0; i < NX; i++) for (let k = 0; k < ND; k++) {
+    const x = OX + (i + 0.5) * CELL, z = OD + (k + 0.5) * CELL, p = (k * NX + i) * 4;
+    if (isSolid(x, h, z)) { img.data[p + 3] = 0; continue; }
+    const u = sample(x, h, z); const sp = u ? Math.hypot(u[0], u[1], u[2]) : 0;
+    col(sp / VMAX, o); img.data[p] = o[0] * 255; img.data[p + 1] = o[1] * 255; img.data[p + 2] = o[2] * 255; img.data[p + 3] = 210;
+  }
+  g.putImageData(img, 0, 0); sliceTex.needsUpdate = true;
+}
+
+// ---------- coil heat map + readouts ----------
+function drawCoil() {
+  const c = (wB > wA ? B : A), [h, w] = c.coilShape, g = $('coil').getContext('2d'), img = g.createImageData(w, h);
+  const o = [0, 0, 0]; let mean = 0;
+  for (let n = 0; n < c.coil.length; n++) mean += c.coil[n] / 255 * c.coilMax; mean /= c.coil.length;
+  for (let r = 0; r < h; r++) for (let q = 0; q < w; q++) {
+    const val = c.coil[r * w + q] / 255 * c.coilMax, p = (r * w + (w - 1 - q)) * 4;     // mirrored: seen from behind
+    col(0.5 + (val / mean - 1) / 0.4, o); img.data[p] = o[0] * 255; img.data[p + 1] = o[1] * 255; img.data[p + 2] = o[2] * 255; img.data[p + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  const cov = (wA * A.cov + wB * B.cov) / (wA + wB || 1);
+  $('cov').textContent = '±' + Math.round(cov * 100) + ' %';
+  $('coil-txt').textContent = 'Pattern from the run at ' + fmt(c.Q) + ' m³/h.';
+}
+
+// ---------- UI ----------
+let mode = 'p', dirty = true;
+function updateFan() {
+  const pct = +$('fan').value, q = pct / 100 * QMAX; setFan(q);
+  $('q').textContent = fmt(q); $('pct').textContent = pct;
+  dirty = true;
+}
+$('fan').addEventListener('input', updateFan);
+function setCfg(n) {
+  cfgName = n; solid = CFG[n].solid; cases = CFG[n].cases;
+  for (const b of ['all', 'cut', 'none']) $('tr-' + b).setAttribute('aria-pressed', n === b);
+  showTreads(); updateFan();
+  for (let i = 0; i < N; i++) spawn(i);
+}
+$('tr-all').onclick = () => setCfg('all'); $('tr-cut').onclick = () => setCfg('cut'); $('tr-none').onclick = () => setCfg('none');
+$('mode-p').onclick = () => { mode = 'p'; $('mode-p').setAttribute('aria-pressed', 'true'); $('mode-s').setAttribute('aria-pressed', 'false'); points.visible = true; if (lines) lines.visible = false; };
+$('mode-s').onclick = () => { mode = 's'; $('mode-s').setAttribute('aria-pressed', 'true'); $('mode-p').setAttribute('aria-pressed', 'false'); points.visible = false; dirty = true; };
+$('slice').onchange = () => { slice.visible = $('slice').checked; dirty = true; };
+$('sliceh').oninput = () => { dirty = true; };
+$('xray').onchange = () => { wallMats.forEach(m => { m.opacity = $('xray').checked ? 0.35 : 1; m.depthWrite = !$('xray').checked; m.needsUpdate = true; }); };
+$('view-back').onclick = () => view('back'); $('view-front').onclick = () => view('back'); $('view-top').onclick = () => view('top');
+showTreads(); updateFan();
+
+function applyTheme() { scene.background = new THREE.Color(cssVar('--stage') || '#dfe5e9'); }
+applyTheme(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+function resize() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (canvas.width !== Math.round(w * renderer.getPixelRatio()) || canvas.height !== Math.round(h * renderer.getPixelRatio())) {
+    renderer.setSize(w, h, false); camera.aspect = w / Math.max(h, 1); camera.updateProjectionMatrix(); }
+}
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  resize();
+  if (dirty) {
+    if (mode === 's') { buildLines(); }
+    if (slice.visible) drawSlice();
+    drawCoil(); dirty = false;
+  }
+  if (mode === 'p') stepParticles(reduce ? dt * 0.3 : dt);
+  controls.update(); renderer.render(scene, camera); placeLabels();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+
+</body>
+</html>
